@@ -13,7 +13,14 @@
     "prepare": "yarn clean && yarn build"
   },
   "activationEvents": [
-    "*"
+    "onLanguage:css",
+    "onLanguage:wxss",
+    "onLanguage:scss",
+    "onLanguage:less",
+    "onLanguage:markdown",
+    "onLanguage:postcss",
+    "onLanguage:sugarss",
+    "onLanguage:vue"
   ],
   "contributes": {
     "configuration": {
@@ -27,22 +34,6 @@
         "stylelint.execArgv": {
           "type": "array",
           "default": [],
-          "items": {
-            "type": "string"
-          }
-        },
-        "stylelint.filetypes": {
-          "type": "array",
-          "default": [
-            "css",
-            "wxss",
-            "scss",
-            "less",
-            "markdown",
-            "postcss",
-            "sugarss",
-            "vue"
-          ],
           "items": {
             "type": "string"
           }

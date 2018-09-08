@@ -36,13 +36,6 @@ Default: `true`
 
 Control whether this extension is enabled or not.
 
-#### stylelint.filetypes
-
-Type: `array`
-Default: `["css", "wxss", "scss", "less", "markdown", "postcss", "sugarss", "vue"]`
-
-List of filetypes to enable stylelint
-
 #### stylelint.configOverrides
 
 Type: `Object`
