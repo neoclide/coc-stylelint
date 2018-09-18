@@ -17,7 +17,6 @@
     "onLanguage:wxss",
     "onLanguage:scss",
     "onLanguage:less",
-    "onLanguage:markdown",
     "onLanguage:postcss",
     "onLanguage:sugarss",
     "onLanguage:vue"

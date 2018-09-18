@@ -8,7 +8,7 @@ Inspired by [vscode-stylelint](https://github.com/shinnn/vscode-stylelint)
 
 In your vim/neovim run command:
 
-``` sh
+```sh
 :CocInstall coc-stylelint
 ```
 
@@ -16,14 +16,13 @@ In your vim/neovim run command:
 
 stylelint automatically validates documents with these `filetypes`:
 
-* `css`
-* `wxss`
-* `scss`
-* `less`
-* `markdown`
-* `postcss`
-* `sugarss`
-* `vue`
+- `css`
+- `wxss`
+- `scss`
+- `less`
+- `postcss`
+- `sugarss`
+- `vue`
 
 ## Extension settings
 
