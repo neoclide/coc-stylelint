@@ -1,12 +1,16 @@
 {
   "name": "coc-stylelint",
-  "version": "1.0.5",
-  "description": "stylelint extension for coc",
+  "version": "1.0.6",
+  "description": "stylelint extension for coc.nvim",
   "main": "lib/index.js",
   "publisher": "chemzqm",
   "engines": {
     "coc": "^0.0.15"
   },
+  "keywords": [
+    "coc.nvim",
+    "stylelint"
+  ],
   "scripts": {
     "clean": "rimraf lib",
     "build": "tsc -p tsconfig.json",
