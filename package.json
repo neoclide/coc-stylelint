@@ -73,6 +73,7 @@
     "array-to-sentence": "^2.0.0",
     "inspect-with-kind": "^1.0.5",
     "lodash": "^4.17.11",
+    "postcss": "^7.0.6",
     "postcss-html": "^0.34.0",
     "postcss-jsx": "^0.35.0",
     "postcss-markdown": "^0.34.0",
