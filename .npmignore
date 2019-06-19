@@ -1,4 +1,6 @@
 src
+server
 tsconfig.json
 tslint.json
 *.map
+yarn.lock
