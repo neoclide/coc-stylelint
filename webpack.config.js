@@ -13,7 +13,7 @@ module.exports = {
   },
   externals: {
     'coc.nvim': 'commonjs coc.nvim',
-    'stylelint': 'commonjs stylelint'
+    'stylelint-vscode': 'commonjs stylelint-vscode'
   },
   module: {
     rules: [{

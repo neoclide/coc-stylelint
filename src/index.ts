@@ -2,10 +2,10 @@ import { ExtensionContext, LanguageClient, ServerOptions, workspace, services, T
 
 export async function activate(context: ExtensionContext): Promise<void> {
   let { subscriptions } = context
-  const config = workspace.getConfiguration().get('stylelint', {}) as any
-  if (!config.enable) return
+  const config = workspace.getConfiguration('stylelint')
+  if (!config.get<boolean>('enable')) return
   const file = context.asAbsolutePath('lib/server.js')
-  const selector = ["css", "wxss", "scss", "less", "postcss", "sugarss", "vue"]
+  const selector = config.get<string[]>('filetypes')
 
   let serverOptions: ServerOptions = {
     module: file,
@@ -25,6 +25,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
       fileEvents: [
         workspace.createFileSystemWatcher('**/stylelint.config.js'),
         workspace.createFileSystemWatcher('**/.stylelintrc'),
+        workspace.createFileSystemWatcher('**/.stylelintrc.js'),
         workspace.createFileSystemWatcher('**/package.json')
       ]
     }

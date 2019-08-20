@@ -1,57 +1,55 @@
-import stylelintVSCode from './lint'
-import { createConnection, IConnection, TextDocument, TextDocuments } from 'vscode-languageserver'
-import { formatError } from './runner'
+'use strict'
 
-const connection: IConnection = createConnection()
+const { join, parse } = require('path')
+
+const { createConnection, ProposedFeatures, TextDocuments } = require('vscode-languageserver')
+const findPkgDir = require('find-pkg-dir')
+const parseUri = require('vscode-uri').URI.parse
+const pathIsInside = require('path-is-inside')
+const stylelintVSCode = require('stylelint-vscode')
+
+let config
+let configOverrides
+
+const connection = createConnection(ProposedFeatures.all)
 const documents = new TextDocuments()
-console.log = connection.console.log.bind(connection.console)
-console.error = connection.console.error.bind(connection.console)
 
-process.on('unhandledRejection', (e: any) => {
-  connection.console.error(formatError(`Unhandled exception`, e))
-})
-
-process.on('unhandledRejection', reason => {
-  connection.console.error(formatError(`Unhandled exception`, reason))
-})
-
-let config: any
-let configOverrides: any
-
-const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {}
-const validationDelayMs = 200
-
-function cleanPendingValidation(textDocument: TextDocument): void {
-  const request = pendingValidationRequests[textDocument.uri]
-  if (request) {
-    clearTimeout(request)
-    delete pendingValidationRequests[textDocument.uri]
-  }
-}
-
-function triggerValidation(textDocument: TextDocument): void {
-  cleanPendingValidation(textDocument)
-  pendingValidationRequests[textDocument.uri] = setTimeout(() => {
-    delete pendingValidationRequests[textDocument.uri]
-    validateTextDocument(textDocument).catch(_e => {
-      // noop
-    })
-  }, validationDelayMs)
-}
-
-async function validateTextDocument(document: TextDocument): Promise<void> {
+async function validate(document): Promise<void> {
   const options: any = {}
-  if (config) options.config = config
-  if (configOverrides) options.configOverrides = configOverrides
+
+  if (config) {
+    options.config = config
+  }
+
+  if (configOverrides) {
+    options.configOverrides = configOverrides
+  }
+
+  const documentPath = parseUri(document.uri).fsPath
+
+  if (documentPath) {
+    const workspaceFolders = await connection.workspace.getWorkspaceFolders()
+
+    if (workspaceFolders) {
+      for (const { uri } of workspaceFolders) {
+        const workspacePath = parseUri(uri).fsPath
+
+        if (pathIsInside(documentPath, workspacePath)) {
+          options.ignorePath = join(workspacePath, '.stylelintignore')
+          break
+        }
+      }
+    }
+
+    if (options.ignorePath === undefined) {
+      options.ignorePath = join(findPkgDir(documentPath) || parse(documentPath).root, '.stylelintignore')
+    }
+  }
 
   try {
-    let diagnostics = await stylelintVSCode(document, options)
-    for (let item of diagnostics) {
-      delete item.code
-    }
     connection.sendDiagnostics({
       uri: document.uri,
-      diagnostics
+      diagnostics: await stylelintVSCode(document, options)
     })
   } catch (err) {
     if (err.reasons) {
@@ -62,44 +60,45 @@ async function validateTextDocument(document: TextDocument): Promise<void> {
       return
     }
 
-    // https://github.com/stylelint/stylelint/blob/9.3.0/lib/utils/configurationError.js#L9
+    // https://github.com/stylelint/stylelint/blob/10.0.1/lib/utils/configurationError.js#L10
     if (err.code === 78) {
       connection.window.showErrorMessage(`stylelint: ${err.message}`)
       return
     }
-    connection.window.showErrorMessage(err.stack.replace(/\n/g, ' '))
+
+    connection.window.showErrorMessage(err.stack.replace(/\n/ug, ' '))
   }
 }
 
 function validateAll(): void {
   for (const document of documents.all()) {
-    triggerValidation(document)
+    // tslint:disable-next-line: no-floating-promises
+    validate(document)
   }
 }
 
 connection.onInitialize(() => {
   validateAll()
+
   return {
     capabilities: {
       textDocumentSync: documents.syncKind
     }
   }
 })
-
 connection.onDidChangeConfiguration(({ settings }) => {
-  config = settings.config
-  configOverrides = settings.configOverrides
+  config = settings.stylelint.config
+  configOverrides = settings.stylelint.configOverrides
+
   validateAll()
 })
-
 connection.onDidChangeWatchedFiles(validateAll)
 
-documents.onDidChangeContent(({ document }) => triggerValidation(document))
-documents.onDidClose(({ document }) => {
-  cleanPendingValidation(document)
-  connection.sendDiagnostics({ uri: document.uri, diagnostics: [] })
-})
-
+documents.onDidChangeContent(({ document }) => validate(document))
+documents.onDidClose(({ document }) => connection.sendDiagnostics({
+  uri: document.uri,
+  diagnostics: []
+}))
 documents.listen(connection)
 
 connection.listen()
