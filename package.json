@@ -115,6 +115,6 @@
     "which": "^1.3.1"
   },
   "dependencies": {
-    "stylelint-vscode": "^7.0.0-6"
+    "vscode-stylelint": "git://github.com/stylelint/vscode-stylelint#v0.83.0"
   }
 }

@@ -6,7 +6,7 @@ const { createConnection, ProposedFeatures, TextDocuments } = require('vscode-la
 const findPkgDir = require('find-pkg-dir')
 const parseUri = require('vscode-uri').URI.parse
 const pathIsInside = require('path-is-inside')
-const stylelintVSCode = require('stylelint-vscode')
+const stylelintVSCode = require('vscode-stylelint/lib/stylelint-vscode')
 
 let config
 let configOverrides
@@ -47,9 +47,11 @@ async function validate(document): Promise<void> {
   }
 
   try {
+    const { diagnostics } = await stylelintVSCode(document, options);
+
     connection.sendDiagnostics({
       uri: document.uri,
-      diagnostics: await stylelintVSCode(document, options)
+      diagnostics,
     })
   } catch (err) {
     if (err.reasons) {
