@@ -48,6 +48,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
             const settings: TextDocumentSettings = {
               config: config.get('config', undefined),
               configOverrides: config.get('configOverrides', {}),
+              autoFixOnSave: config.get('autoFixOnSave', false),
             };
 
             return settings;

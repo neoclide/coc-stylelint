@@ -1,4 +1,4 @@
-import { createConnection, ProposedFeatures, TextDocuments, TextDocument } from 'vscode-languageserver';
+import { createConnection, ProposedFeatures, TextDocuments, TextDocument, TextDocumentSaveReason, TextDocumentSyncKind } from 'vscode-languageserver';
 
 import * as DocumentSettings from './settings';
 import * as Stylelint from './stylelint';
@@ -27,6 +27,20 @@ async function validateDocument(document: TextDocument) {
   }
 }
 
+async function autoFixDocument(document: TextDocument) {
+  try {
+    const textEdit = await Stylelint.getTextEdit(connection, document);
+
+    if (textEdit) {
+      return [textEdit];
+    }
+  } catch (error) {
+    connection.window.showErrorMessage(error.stack.replace(/\n/ug, ' '));
+  }
+
+  return [];
+}
+
 function validateAll(): void {
   documents.all().forEach(document => {
     validateDocument(document);
@@ -38,7 +52,14 @@ connection.onInitialize(() => {
 
   return {
     capabilities: {
-      textDocumentSync: documents.syncKind
+      textDocumentSync: {
+        change: TextDocumentSyncKind.Full,
+         openClose: true,
+        willSaveWaitUntil: true,
+        save: {
+          includeText: false
+        },
+      },
     }
   }
 })
@@ -63,6 +84,20 @@ documents.onDidClose(({ document }) => {
 
   DocumentSettings.deleteDocument(document);
 });
+
+documents.onWillSaveWaitUntil(async ({ reason, document }) => {
+  if (reason === TextDocumentSaveReason.AfterDelay) {
+    return [];
+  }
+
+  const settings = await DocumentSettings.get(connection, document);
+
+  if (!settings.autoFixOnSave) {
+    return [];
+  }
+
+  return await autoFixDocument(document)
+})
 
 documents.listen(connection);
 
