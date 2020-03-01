@@ -1,13 +1,14 @@
 import { ExtensionContext, LanguageClient, ServerOptions, workspace, services, TransportKind, LanguageClientOptions } from 'coc.nvim'
 
 export async function activate(context: ExtensionContext): Promise<void> {
-  let { subscriptions } = context
-  const config = workspace.getConfiguration('stylelint')
-  if (!config.get<boolean>('enable')) return
-  const file = context.asAbsolutePath('lib/server.js')
-  const selector = config.get<string[]>('filetypes')
+  const { subscriptions } = context;
 
-  let serverOptions: ServerOptions = {
+  const config = workspace.getConfiguration('stylelint');
+  if (!config.get<boolean>('enable')) return;
+
+  const file = context.asAbsolutePath('lib/server.js')
+
+  const serverOptions: ServerOptions = {
     module: file,
     args: ['--node-ipc'],
     transport: TransportKind.ipc,
@@ -15,9 +16,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
       cwd: workspace.root,
       execArgv: config.execArgv
     }
-  }
+  };
 
-  let clientOptions: LanguageClientOptions = {
+  const selector = config.get<string[]>('filetypes');
+
+  const clientOptions: LanguageClientOptions = {
     documentSelector: selector,
     diagnosticCollectionName: 'stylelint',
     synchronize: {
@@ -28,12 +31,12 @@ export async function activate(context: ExtensionContext): Promise<void> {
         workspace.createFileSystemWatcher('**/.stylelintrc.js'),
         workspace.createFileSystemWatcher('**/package.json')
       ]
-    }
-  }
+    },
+  };
 
-  let client = new LanguageClient('stylelint', 'stylelint langserver', serverOptions, clientOptions)
+  const client = new LanguageClient('stylelint', 'stylelint langserver', serverOptions, clientOptions);
 
   subscriptions.push(
     services.registLanguageClient(client)
-  )
+  );
 }
