@@ -1,5 +1,6 @@
 import { createConnection, ProposedFeatures, TextDocuments, TextDocument } from 'vscode-languageserver';
 
+import * as DocumentSettings from './settings';
 import * as Stylelint from './stylelint';
 
 const { join, parse } = require('path')
@@ -13,12 +14,9 @@ const stylelintVSCode = require('stylelint-vscode')
 const connection = createConnection(ProposedFeatures.all)
 const documents = new TextDocuments()
 
-let config
-let configOverrides
-
 async function validateDocument(document: TextDocument) {
   try {
-    const diagnostics = await Stylelint.getDiagnostics(connection, document, { config, configOverrides });
+    const diagnostics = await Stylelint.getDiagnostics(connection, document);
 
     connection.sendDiagnostics({
       uri: document.uri,
@@ -45,9 +43,8 @@ connection.onInitialize(() => {
   }
 })
 
-connection.onDidChangeConfiguration(({ settings }) => {
-  config = settings.stylelint.config
-  configOverrides = settings.stylelint.configOverrides
+connection.onDidChangeConfiguration(() => {
+  DocumentSettings.clear();
 
   validateAll();
 })
@@ -63,6 +60,8 @@ documents.onDidClose(({ document }) => {
     uri: document.uri,
     diagnostics: []
   });
+
+  DocumentSettings.deleteDocument(document);
 });
 
 documents.listen(connection);

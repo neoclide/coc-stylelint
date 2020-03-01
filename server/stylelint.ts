@@ -1,4 +1,4 @@
-import Path from 'path';
+import * as Path from 'path';
 import findPkgDir from 'find-pkg-dir';
 import pathIsInside from 'path-is-inside';
 
@@ -8,17 +8,16 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import stylelintVSCode from 'stylelint-vscode';
 
-export async function getDiagnostics(connection: IConnection, document: TextDocument, { config, configOverrides }): Promise<Diagnostic[]> {
+import * as DocumentSettings from './settings';
+
+export async function getDiagnostics(connection: IConnection, document: TextDocument): Promise<Diagnostic[]> {
   const documentPath = URI.parse(document.uri).fsPath;
 
-  const options: any = {}
+  const settings = await DocumentSettings.get(connection, document);
 
-  if (config) {
-    options.config = config
-  }
-
-  if (configOverrides) {
-    options.configOverrides = configOverrides
+  const options: any = {
+    config: settings.config,
+    configOverrides: settings.configOverrides,
   }
 
   if (documentPath) {
