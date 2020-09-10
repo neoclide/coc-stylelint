@@ -1,13 +1,16 @@
-import { ExtensionContext, LanguageClient, ServerOptions, workspace, services, TransportKind, LanguageClientOptions } from 'coc.nvim'
+import { ExtensionContext, LanguageClient, ServerOptions, workspace, services, TransportKind, LanguageClientOptions, WorkspaceMiddleware } from 'coc.nvim'
+
+import { TextDocumentSettings } from '../types';
 
 export async function activate(context: ExtensionContext): Promise<void> {
-  let { subscriptions } = context
-  const config = workspace.getConfiguration('stylelint')
-  if (!config.get<boolean>('enable')) return
-  const file = context.asAbsolutePath('lib/server.js')
-  const selector = config.get<string[]>('filetypes')
+  const { subscriptions } = context;
 
-  let serverOptions: ServerOptions = {
+  const config = workspace.getConfiguration('stylelint');
+  if (!config.get<boolean>('enable')) return;
+
+  const file = context.asAbsolutePath('lib/server.js')
+
+  const serverOptions: ServerOptions = {
     module: file,
     args: ['--node-ipc'],
     transport: TransportKind.ipc,
@@ -15,9 +18,11 @@ export async function activate(context: ExtensionContext): Promise<void> {
       cwd: workspace.root,
       execArgv: config.execArgv
     }
-  }
+  };
 
-  let clientOptions: LanguageClientOptions = {
+  const selector = config.get<string[]>('filetypes');
+
+  const clientOptions: LanguageClientOptions = {
     documentSelector: selector,
     diagnosticCollectionName: 'stylelint',
     synchronize: {
@@ -28,12 +33,34 @@ export async function activate(context: ExtensionContext): Promise<void> {
         workspace.createFileSystemWatcher('**/.stylelintrc.js'),
         workspace.createFileSystemWatcher('**/package.json')
       ]
-    }
-  }
+    },
+    initializationFailedHandler: error => {
+      workspace.showMessage(`Stylelint server initialization failed: ${error.message}.`, 'error')
+      return false
+    },
+    middleware: {
+      workspace: {
+        configuration: (params, _token, _next): any => {
+          return params.items.map(item => {
+            const uri = item.scopeUri;
+            const config = workspace.getConfiguration('stylelint', uri);
 
-  let client = new LanguageClient('stylelint', 'stylelint langserver', serverOptions, clientOptions)
+            const settings: TextDocumentSettings = {
+              config: config.get('config', undefined),
+              configOverrides: config.get('configOverrides', {}),
+              autoFixOnSave: config.get('autoFixOnSave', false),
+            };
+
+            return settings;
+          })
+        }
+      } as WorkspaceMiddleware
+    }
+  };
+
+  const client = new LanguageClient('stylelint', 'stylelint langserver', serverOptions, clientOptions);
 
   subscriptions.push(
     services.registLanguageClient(client)
-  )
+  );
 }

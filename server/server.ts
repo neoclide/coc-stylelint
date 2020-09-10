@@ -1,4 +1,7 @@
-'use strict'
+import { createConnection, ProposedFeatures, TextDocuments, TextDocument, TextDocumentSaveReason, TextDocumentSyncKind } from 'vscode-languageserver';
+
+import * as DocumentSettings from './settings';
+import * as Stylelint from './stylelint';
 
 const { join, parse } = require('path')
 
@@ -8,97 +11,94 @@ const parseUri = require('vscode-uri').URI.parse
 const pathIsInside = require('path-is-inside')
 const stylelintVSCode = require('stylelint-vscode')
 
-let config
-let configOverrides
-
 const connection = createConnection(ProposedFeatures.all)
 const documents = new TextDocuments()
 
-async function validate(document): Promise<void> {
-  const options: any = {}
-
-  if (config) {
-    options.config = config
-  }
-
-  if (configOverrides) {
-    options.configOverrides = configOverrides
-  }
-
-  const documentPath = parseUri(document.uri).fsPath
-
-  if (documentPath) {
-    const workspaceFolders = await connection.workspace.getWorkspaceFolders()
-
-    if (workspaceFolders) {
-      for (const { uri } of workspaceFolders) {
-        const workspacePath = parseUri(uri).fsPath
-
-        if (pathIsInside(documentPath, workspacePath)) {
-          options.ignorePath = join(workspacePath, '.stylelintignore')
-          break
-        }
-      }
-    }
-
-    if (options.ignorePath === undefined) {
-      options.ignorePath = join(findPkgDir(documentPath) || parse(documentPath).root, '.stylelintignore')
-    }
-  }
-
+async function validateDocument(document: TextDocument) {
   try {
+    const diagnostics = await Stylelint.getDiagnostics(connection, document);
+
     connection.sendDiagnostics({
       uri: document.uri,
-      diagnostics: await stylelintVSCode(document, options)
+      diagnostics: diagnostics,
     })
-  } catch (err) {
-    if (err.reasons) {
-      for (const reason of err.reasons) {
-        connection.window.showErrorMessage(`stylelint: ${reason}`)
-      }
-
-      return
-    }
-
-    // https://github.com/stylelint/stylelint/blob/10.0.1/lib/utils/configurationError.js#L10
-    if (err.code === 78) {
-      connection.window.showErrorMessage(`stylelint: ${err.message}`)
-      return
-    }
-
-    connection.window.showErrorMessage(err.stack.replace(/\n/ug, ' '))
+  } catch (error) {
+    connection.window.showErrorMessage(error.stack.replace(/\n/ug, ' '));
   }
+}
+
+async function autoFixDocument(document: TextDocument) {
+  try {
+    const textEdit = await Stylelint.getTextEdit(connection, document);
+
+    if (textEdit) {
+      return [textEdit];
+    }
+  } catch (error) {
+    connection.window.showErrorMessage(error.stack.replace(/\n/ug, ' '));
+  }
+
+  return [];
 }
 
 function validateAll(): void {
-  for (const document of documents.all()) {
-    // tslint:disable-next-line: no-floating-promises
-    validate(document)
-  }
+  documents.all().forEach(document => {
+    validateDocument(document);
+  });
 }
 
 connection.onInitialize(() => {
-  validateAll()
+  validateAll();
 
   return {
     capabilities: {
-      textDocumentSync: documents.syncKind
+      textDocumentSync: {
+        change: TextDocumentSyncKind.Full,
+         openClose: true,
+        willSaveWaitUntil: true,
+        save: {
+          includeText: false
+        },
+      },
     }
   }
 })
-connection.onDidChangeConfiguration(({ settings }) => {
-  config = settings.stylelint.config
-  configOverrides = settings.stylelint.configOverrides
 
-  validateAll()
+connection.onDidChangeConfiguration(() => {
+  DocumentSettings.clear();
+
+  validateAll();
 })
+
 connection.onDidChangeWatchedFiles(validateAll)
 
-documents.onDidChangeContent(({ document }) => validate(document))
-documents.onDidClose(({ document }) => connection.sendDiagnostics({
-  uri: document.uri,
-  diagnostics: []
-}))
-documents.listen(connection)
+documents.onDidChangeContent(({ document }) => {
+  validateDocument(document);
+});
 
-connection.listen()
+documents.onDidClose(({ document }) => {
+  connection.sendDiagnostics({
+    uri: document.uri,
+    diagnostics: []
+  });
+
+  DocumentSettings.deleteDocument(document);
+});
+
+documents.onWillSaveWaitUntil(async ({ reason, document }) => {
+  if (reason === TextDocumentSaveReason.AfterDelay) {
+    return [];
+  }
+
+  const settings = await DocumentSettings.get(connection, document);
+
+  if (!settings.autoFixOnSave) {
+    return [];
+  }
+
+  return await autoFixDocument(document)
+})
+
+documents.listen(connection);
+
+connection.listen();
