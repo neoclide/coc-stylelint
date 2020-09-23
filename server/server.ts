@@ -5,7 +5,6 @@ import * as Stylelint from './stylelint';
 
 const { join, parse } = require('path')
 
-const { createConnection, ProposedFeatures, TextDocuments } = require('vscode-languageserver')
 const findPkgDir = require('find-pkg-dir')
 const parseUri = require('vscode-uri').URI.parse
 const pathIsInside = require('path-is-inside')
