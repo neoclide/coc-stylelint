@@ -2,8 +2,7 @@ const path = require('path')
 
 module.exports = {
   entry: {
-    index: './src/index.ts',
-    server: './server/server.ts'
+    index: './src/index.ts'
   },
   target: 'node',
   mode: 'none',
@@ -12,8 +11,7 @@ module.exports = {
     extensions: ['.js', '.ts']
   },
   externals: {
-    'coc.nvim': 'commonjs coc.nvim',
-    'stylelint-vscode': 'commonjs stylelint-vscode'
+    'coc.nvim': 'commonjs coc.nvim'
   },
   module: {
     rules: [{
