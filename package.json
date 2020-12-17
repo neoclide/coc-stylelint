@@ -13,8 +13,7 @@
   ],
   "scripts": {
     "clean": "rimraf lib",
-    "build": "webpack",
-    "prepare": "npx npm-run-all clean build"
+    "build": "webpack"
   },
   "activationEvents": [
     "onLanguage:css",
