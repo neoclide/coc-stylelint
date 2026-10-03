@@ -1,5 +1,7 @@
 # coc-stylelint
 
+> **Deprecated:** coc-stylelint is no longer maintained.
+
 Stylelint language server extension for [coc.nvim](https://github.com/neoclide/coc.nvim).
 
 Inspired by [vscode-stylelint](https://github.com/shinnn/vscode-stylelint)
